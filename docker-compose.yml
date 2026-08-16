@@ -1,0 +1,22 @@
+services:
+  wikijs-mcp:
+    build: .
+    container_name: wikijs-mcp
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "192.168.88.25:3002:8080"
+    volumes:
+      - mcp-data:/app/data
+      - mcp-logs:/app/logs
+    networks:
+      - traefik
+
+volumes:
+  mcp-data:
+  mcp-logs:
+
+networks:
+  traefik:
+    external: true
