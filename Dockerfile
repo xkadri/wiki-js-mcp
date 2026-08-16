@@ -14,4 +14,4 @@ ENV LOG_FILE=/app/logs/wikijs_mcp.log
 
 EXPOSE 8080
 
-CMD ["mcp-proxy", "--host", "0.0.0.0", "--port", "8080", "--", "python", "src/wiki_mcp_server.py"]
+CMD ["mcp-proxy", "--host", "0.0.0.0", "--port", "8080", "--pass-environment", "--", "python", "src/wiki_mcp_server.py"]
