@@ -474,17 +474,21 @@ async def wikijs_update_page(page_id: int, title: str = None, content: str = Non
         return json.dumps({"error": error_msg})
 
 @mcp.tool()
-async def wikijs_get_page(page_id: int = None, slug: str = None) -> str:
+async def wikijs_get_page(page_id: int = None, slug: str = None, pageId: int = None) -> str:
     """
     Retrieve page metadata and content from Wiki.js.
-    
+
     Args:
         page_id: Page ID (optional)
         slug: Page slug/path (optional)
-    
+        pageId: Alias for page_id (accepted because other tools in this
+            server return "pageId" in their JSON output, and callers
+            naturally reuse that field name as the next call's argument)
+
     Returns:
         JSON string with page data
     """
+    page_id = page_id if page_id is not None else pageId
     try:
         await wikijs.authenticate()
         
@@ -1325,17 +1329,21 @@ This is a section page for organizing documentation.
         return json.dumps({"error": error_msg})
 
 @mcp.tool()
-async def wikijs_get_page_children(page_id: int = None, page_path: str = None) -> str:
+async def wikijs_get_page_children(page_id: int = None, page_path: str = None, pageId: int = None) -> str:
     """
     Get all child pages of a given page for hierarchical navigation.
-    
+
     Args:
         page_id: Parent page ID (optional)
         page_path: Parent page path (optional)
-    
+        pageId: Alias for page_id (accepted because other tools in this
+            server return "pageId" in their JSON output, and callers
+            naturally reuse that field name as the next call's argument)
+
     Returns:
         JSON string with child pages list
     """
+    page_id = page_id if page_id is not None else pageId
     try:
         await wikijs.authenticate()
         
