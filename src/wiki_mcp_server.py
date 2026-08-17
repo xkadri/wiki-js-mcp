@@ -572,6 +572,55 @@ async def wikijs_get_page(page_id: int = None, slug: str = None, pageId: int = N
         return json.dumps({"error": error_msg})
 
 @mcp.tool()
+async def wikijs_add_comment(page_id: int, content: str, pageId: int = None) -> str:
+    """
+    Add a comment to a Wiki.js page.
+
+    Args:
+        page_id: Page ID to comment on
+        content: Comment text (Markdown supported)
+        pageId: Alias for page_id (accepted because other tools in this
+            server return "pageId" in their JSON output, and callers
+            naturally reuse that field name as the next call's argument)
+
+    Returns:
+        JSON string with the created comment's ID, or an error
+    """
+    page_id = page_id if page_id is not None else pageId
+    try:
+        await wikijs.authenticate()
+
+        mutation = """
+        mutation($pageId: Int!, $content: String!) {
+            comments {
+                create(pageId: $pageId, content: $content) {
+                    responseResult { succeeded errorCode message }
+                    id
+                }
+            }
+        }
+        """
+
+        response = await wikijs.graphql_request(mutation, {"pageId": page_id, "content": content})
+        result = response.get("data", {}).get("comments", {}).get("create", {})
+        response_result = result.get("responseResult", {})
+
+        if response_result.get("succeeded"):
+            return json.dumps({
+                "commentId": result.get("id"),
+                "pageId": page_id,
+                "status": "created"
+            })
+        else:
+            error_msg = response_result.get("message", "Unknown error")
+            return json.dumps({"error": f"Failed to add comment: {error_msg}"})
+
+    except Exception as e:
+        error_msg = f"Failed to add comment to page {page_id}: {str(e)}"
+        logger.error(error_msg)
+        return json.dumps({"error": error_msg})
+
+@mcp.tool()
 async def wikijs_search_pages(query: str, space_id: str = None) -> str:
     """
     Search pages by text in Wiki.js.
@@ -627,6 +676,59 @@ async def wikijs_search_pages(query: str, space_id: str = None) -> str:
         
     except Exception as e:
         error_msg = f"Search failed: {str(e)}"
+        logger.error(error_msg)
+        return json.dumps({"error": error_msg})
+
+@mcp.tool()
+async def wikijs_list_pages() -> str:
+    """
+    List every page in Wiki.js (id, title, path, description, isPublished,
+    lastModified), sorted by path. Use this to enumerate all pages before
+    picking one deterministically -- there is no random-sample tool.
+
+    Returns:
+        JSON string with the full page list and total count
+    """
+    try:
+        await wikijs.authenticate()
+
+        all_pages_query = """
+        query {
+            pages {
+                list {
+                    id
+                    title
+                    path
+                    description
+                    isPublished
+                    updatedAt
+                }
+            }
+        }
+        """
+
+        response = await wikijs.graphql_request(all_pages_query)
+        all_pages = response.get("data", {}).get("pages", {}).get("list", [])
+
+        pages = sorted(
+            (
+                {
+                    "pageId": page["id"],
+                    "title": page["title"],
+                    "path": page["path"],
+                    "description": page.get("description", ""),
+                    "isPublished": page.get("isPublished", True),
+                    "lastModified": page.get("updatedAt")
+                }
+                for page in all_pages
+            ),
+            key=lambda p: p["path"]
+        )
+
+        return json.dumps({"pages": pages, "total": len(pages)})
+
+    except Exception as e:
+        error_msg = f"Failed to list pages: {str(e)}"
         logger.error(error_msg)
         return json.dumps({"error": error_msg})
 
