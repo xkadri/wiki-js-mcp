@@ -682,12 +682,14 @@ async def wikijs_search_pages(query: str, space_id: str = None) -> str:
 @mcp.tool()
 async def wikijs_list_pages() -> str:
     """
-    List every page in Wiki.js (id, title, path, description, isPublished,
-    lastModified), sorted by path. Use this to enumerate all pages before
-    picking one deterministically -- there is no random-sample tool.
+    List every page in Wiki.js as minimal (id, path) pairs, sorted by path.
+    Deliberately excludes title/description/timestamps to stay small even
+    on a large wiki -- call wikijs_get_page for full detail on a specific
+    page once you have picked its id. Use this to enumerate all pages
+    before picking one deterministically -- there is no random-sample tool.
 
     Returns:
-        JSON string with the full page list and total count
+        JSON string with the minimal page list and total count
     """
     try:
         await wikijs.authenticate()
@@ -697,11 +699,7 @@ async def wikijs_list_pages() -> str:
             pages {
                 list {
                     id
-                    title
                     path
-                    description
-                    isPublished
-                    updatedAt
                 }
             }
         }
@@ -712,14 +710,7 @@ async def wikijs_list_pages() -> str:
 
         pages = sorted(
             (
-                {
-                    "pageId": page["id"],
-                    "title": page["title"],
-                    "path": page["path"],
-                    "description": page.get("description", ""),
-                    "isPublished": page.get("isPublished", True),
-                    "lastModified": page.get("updatedAt")
-                }
+                {"pageId": page["id"], "path": page["path"]}
                 for page in all_pages
             ),
             key=lambda p: p["path"]
